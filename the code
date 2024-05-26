@@ -1,0 +1,112 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("Techie Tribe", "LightTheme")
+
+-- Tabs
+local FovTab = Window:NewTab("Fov")
+local SpeedTab = Window:NewTab("Speed")
+local EspTab = Window:NewTab("Esp")
+local GodmodeTab = Window:NewTab("Godmode")
+
+-- Fov Section
+local FovSection = FovTab:NewSection("Fov Settings")
+FovSection:NewSlider("Field Of View", "Adjusts Players Fov", 120, 70, function(value) -- 120(MaxValue) | 70(MinValue)
+    game.Workspace.CurrentCamera.FieldOfView = value
+end)
+
+-- Speed Section
+local SpeedSection = SpeedTab:NewSection("Speed Settings")
+SpeedSection:NewSlider("Walk Speed", "Adjusts Players Walk Speed", 100, 16, function(value) -- 100(MaxValue) | 16(MinValue)
+    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
+end)
+
+-- Esp Section
+local EspSection = EspTab:NewSection("Esp Settings")
+EspSection:NewToggle("Esp", "Turns on and off the esp", function(state)
+    local highlightColor = Color3.fromRGB(255, 0, 0) -- Red color for highlighting
+
+    -- Function to highlight a player's character
+    local function highlightCharacter(character)
+        -- Check if the character already has a Highlight object, if not, create one
+        local highlight = character:FindFirstChildOfClass("Highlight")
+        if not highlight then
+            highlight = Instance.new("Highlight")
+            highlight.Parent = character
+        end
+        highlight.FillColor = highlightColor
+        highlight.OutlineColor = highlightColor
+    end
+
+    -- Highlight all existing players' characters
+    local function highlightAllPlayers()
+        for _, player in ipairs(game.Players:GetPlayers()) do
+            if player.Character then
+                highlightCharacter(player.Character)
+            end
+            player.CharacterAdded:Connect(function(character)
+                highlightCharacter(character)
+            end)
+        end
+    end
+
+    if state then
+        -- Initial call to highlight all current players
+        highlightAllPlayers()
+        
+        -- Listen for new players joining and highlight their character
+        game.Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Connect(function(character)
+                highlightCharacter(character)
+            end)
+        end)
+
+        print("Toggle On")
+    else
+        -- Remove highlighting if the toggle is off
+        for _, player in ipairs(game.Players:GetPlayers()) do
+            if player.Character then
+                local highlight = player.Character:FindFirstChildOfClass("Highlight")
+                if highlight then
+                    highlight:Destroy()
+                end
+            end
+        end
+        
+        print("Toggle Off")
+    end
+end)
+
+-- Godmode Section
+local GodmodeSection = GodmodeTab:NewSection("Godmode Settings")
+GodmodeSection:NewToggle("Godmode", "Unable to die", function(state)
+    if state then
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoid = character:WaitForChild("Humanoid")
+
+        -- Function to prevent the character from taking damage
+        local function preventDamage()
+            humanoid.Health = humanoid.MaxHealth
+        end
+
+        -- Connect the function to the Humanoid's HealthChanged event
+        humanoid.HealthChanged:Connect(preventDamage)
+
+        -- Ensure the function is connected to new characters that spawn
+        player.CharacterAdded:Connect(function(newCharacter)
+            character = newCharacter
+            humanoid = newCharacter:WaitForChild("Humanoid")
+            humanoid.HealthChanged:Connect(preventDamage)
+        end)
+
+        print("Godmode On")
+    else
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoid = character:WaitForChild("Humanoid")
+
+        -- Disconnect all HealthChanged connections to disable Godmode
+        humanoid.HealthChanged:Connect(function() end)
+        
+        print("Godmode Off")
+    end
+end)
